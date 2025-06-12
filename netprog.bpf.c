@@ -7,7 +7,6 @@
 
 #define ETH_P_IPV6		0x86DD	/* IPv6 */
 #define ETH_P_IP		0x0800	/* IPv4 */
-#define IPPROTO_ICMPV6		58	/* ICMPv6 */
 #define IPPROTO_TCP		6	/* TCP */
 #define IPPROTO_UDP		17	/* UDP */
 
@@ -21,8 +20,7 @@
 #define PROTO_HTTP		0
 #define PROTO_DNS		1
 #define PROTO_SSH		2
-#define PROTO_OTHER		3
-#define PROTO_MAX		4
+#define PROTO_MAX		3
 
 /* Byte-count bounds check; check if current pointer at @start + @off of header
  * is after @end.
@@ -150,41 +148,59 @@ parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr)
 static __always_inline int
 process_ipv6hdr(struct hdr_cursor *nh, void *data_end)
 {
-	struct proc_stats *pstats;
+	struct protocol_stats *pstats;
 	struct ipv6hdr *ip6h;
-	const int key = 0;
+	struct tcphdr *tcp;
+	struct udphdr *udp;
 	int nexthdr;
+	__u16 sport, dport;
+	__u32 key;
 
 	nexthdr = parse_ip6hdr(nh, data_end, &ip6h);
 	if (nexthdr < 0)
 		return XDP_PASS;
 
-	/* Do processing based on the IPv6 next header. In this specific case,
-	 * drop any ICMPv6 packet.
-	 */
-	if (nexthdr != IPPROTO_ICMPV6)
+	switch (nexthdr) {
+	case IPPROTO_TCP:
+		if (parse_tcphdr(nh, data_end, &tcp) < 0)
+			return XDP_PASS;
+		sport = bpf_ntohs(tcp->source);
+		dport = bpf_ntohs(tcp->dest);
+		break;
+	case IPPROTO_UDP:
+		if (parse_udphdr(nh, data_end, &udp) < 0)
+			return XDP_PASS;
+		sport = bpf_ntohs(udp->source);
+		dport = bpf_ntohs(udp->dest);
+		break;
+	default:
 		return XDP_PASS;
-
-	/* Lookup in kernel BPF-side return pointer to stats record */
-	pstats = bpf_map_lookup_elem(&xdp_stats_map, &key);
-	if (!pstats) {
-		/* BPF kernel-side verifier will reject program if the
-		 * NULL pointer check isn't performed here. Even-though
-		 * this is a static array where we know key lookup
-		 * XDP_PASS always will succeed.
-		 */
-		bpf_printk("XDP: Cannot access to proc stats, weird!?! Abort!");
-		return XDP_ABORTED;
 	}
 
+	/* Classify protocol based on ports */
+	if (sport == HTTP_PORT || dport == HTTP_PORT || 
+	    sport == HTTPS_PORT || dport == HTTPS_PORT) {
+		key = PROTO_HTTP;
+		bpf_printk("XDP: received a HTTP packet!");
+	} else if (sport == DNS_PORT || dport == DNS_PORT) {
+		key = PROTO_DNS;
+		bpf_printk("XDP: received a DNS packet!");
+	} else if (sport == SSH_PORT || dport == SSH_PORT) {
+		key = PROTO_SSH;
+		bpf_printk("XDP: received a SSH packet!");
+	} else {
+		return XDP_PASS;
+	}
 
-	/* Multiple CPUs can access data record. Thus, the accounting needs to
-	 * use an atomic operation.
-	 */
-	lock_xadd(&pstats->drop, 1);
+	/* Update protocol statistics */
+	pstats = bpf_map_lookup_elem(&protocol_stats_map, &key);
+	if (!pstats)
+		return XDP_PASS;
 
-	bpf_printk("XDP: received ICMPv6 packet! Drop it!");
-	return XDP_DROP;
+	lock_xadd(&pstats->packets, 1);
+	lock_xadd(&pstats->bytes, bpf_ntohs(ip6h->payload_len) + sizeof(*ip6h));
+
+	return XDP_PASS;
 }
 
 static __always_inline int
@@ -223,12 +239,15 @@ process_ipv4hdr(struct hdr_cursor *nh, void *data_end)
 	if (sport == HTTP_PORT || dport == HTTP_PORT || 
 	    sport == HTTPS_PORT || dport == HTTPS_PORT) {
 		key = PROTO_HTTP;
+		bpf_printk("XDP: received a HTTP packet!");
 	} else if (sport == DNS_PORT || dport == DNS_PORT) {
 		key = PROTO_DNS;
+		bpf_printk("XDP: received a DNS packet!");
 	} else if (sport == SSH_PORT || dport == SSH_PORT) {
 		key = PROTO_SSH;
+		bpf_printk("XDP: received a SSH packet!");
 	} else {
-		key = PROTO_OTHER;
+		return XDP_PASS;
 	}
 
 	/* Update protocol statistics */
