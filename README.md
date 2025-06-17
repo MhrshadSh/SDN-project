@@ -62,7 +62,7 @@ sudo cat /sys/kernel/tracing/trace_pipe
 
 4. View protocol statistics:
 ```bash
-sudo bpftool map dump id <MAP_ID>
+bpftool map dump pinned /sys/fs/bpf/netprog/maps/protocol_stats_map
 ```
 
 ## Protocol Detection
