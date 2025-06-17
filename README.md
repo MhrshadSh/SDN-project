@@ -73,6 +73,58 @@ The program maintains counters for each protocol type:
 - Number of packets
 - Total bytes
 
+## 🧪 Tests
+
+This section outlines how to test the protocol counter XDP program by generating traffic from `h0` to `h1`. The XDP program is attached to `r0`'s `veth1` and counts HTTP, DNS, and SSH traffic over both IPv4 and IPv6.
+
+---
+
+### 1️⃣ View XDP Map in Real-Time
+
+Open the `r0` tmux window and run:
+
+```bash
+watch bpftool map dump pinned /sys/fs/bpf/netprog/maps/protocol_stats_map
+```
+### 2️⃣ Run Test Cases from h0
+
+Open the h0 tmux window and use the following commands.
+### 🌐 HTTP Tests
+#### HTTP over IPv4
+```bash
+curl http://10.0.2.1 --connect-timeout 1
+```
+#### HTTP over IPv6
+```bash
+curl -g -6 'http://[beef::1]' --connect-timeout 1
+```
+✅ Optional: On h1, start a web server
+python3 -m http.server 80
+
+### 🧭 DNS Tests
+#### DNS over IPv4
+```bash
+dig @10.0.2.1 example.com
+```
+or use "curl example.com". As it will generate a dns msg to resolve example.com
+#### DNS over IPv6
+```bash
+dig @beef::1 example.com
+```
+
+✅ Optional: On h1, start a DNS server
+dnsmasq --no-daemon
+
+### 🔐 SSH Tests
+#### SSH over IPv4
+```bash
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=1 user@10.0.2.1
+```
+#### SSH over IPv6
+```bash
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=1 user@[beef::1]
+```
+
 ## License
 
 This project is licensed under the GPL-2.0 License.
