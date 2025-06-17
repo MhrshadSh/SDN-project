@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 =======
 # SDN final Project
->>>>>>> db3ffd5b6435ee552f2e5f99623c2f711d688d2e
+
 # eBPF Protocol Classifier
 
 This project implements an eBPF-based network protocol classifier that identifies and counts HTTP, DNS, and SSH traffic based on port numbers. The program runs in the Linux kernel using XDP (eXpress Data Path) to process packets at the earliest possible point in the network stack.

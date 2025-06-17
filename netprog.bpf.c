@@ -112,6 +112,23 @@ parse_ip6hdr(struct hdr_cursor *nh, void *data_end, struct ipv6hdr **ip6hdr)
 }
 
 static __always_inline int
+parse_ip4hdr(struct hdr_cursor *nh, void *data_end, struct iphdr **iphdr)
+{
+	struct iphdr *iph = nh->pos;
+	int hdrsize = sizeof(*iph);
+
+	if (!__may_pull(iph, hdrsize, data_end))
+		return -EINVAL;
+
+	nh->pos += hdrsize;
+
+	if (iphdr)
+		*iphdr = iph;
+
+	return iph->protocol;
+}
+
+static __always_inline int
 parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr)
 {
 	struct tcphdr *tcp = nh->pos;
