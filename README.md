@@ -39,20 +39,25 @@ make
 The compiled eBPF object file will be created in the `.output` directory.
 
 ## Usage
+Run the "xdp_protocol_classifier.sh" that will create the environment with one router and two hosts, then it applies
+the following commands:
 
-1. Load the eBPF program onto a network interface (replace `eth0` with your interface):
+1. Load the eBPF program:
 ```bash
-sudo bpftool prog load .output/netprog.bpf.o /sys/fs/bpf/netprog type xdp
+bpftool prog \
+		loadall netprog.bpf.o /sys/fs/bpf/netprog/progs \
+		pinmaps /sys/fs/bpf/netprog/maps
 ```
 
 2. Attach the program to an interface:
 ```bash
-sudo bpftool net attach xdp id <PROG_ID> dev eth0
+bpftool net attach xdp \
+		pinned /sys/fs/bpf/netprog/progs/xdp_prog_protocol_classifier dev veth1
 ```
 
 3. View the trace pipe for protocol detection messages:
 ```bash
-sudo cat /sys/kernel/debug/tracing/trace_pipe
+sudo cat /sys/kernel/tracing/trace_pipe
 ```
 
 4. View protocol statistics:
