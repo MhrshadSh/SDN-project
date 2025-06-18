@@ -133,6 +133,51 @@ ssh -o StrictHostKeyChecking=no -o ConnectTimeout=1 user@10.0.2.1
 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=1 user@[beef::1]
 ```
 
+---
+
+## 📸 Experimental Screenshots
+
+Below are the screenshots demonstrating the behavior of the Application Protocol Classifier based on eBPF/XDP with IPv6 support.
+
+### 1️⃣ Map Before Sending Any Packets
+
+This screenshot shows the eBPF map with initial counter values (all zero) before any packets are sent.
+
+![Map Before Packets](./docs/empty.png)
+
+---
+
+### 2️⃣ Map After One HTTP Request
+
+After sending a single HTTP request, the HTTP counter is incremented.
+
+![Map After HTTP](./docs/http.png)
+
+---
+
+### 3️⃣ Map After Sending DNS Traffic
+
+This shows the counter after DNS traffic is sent.
+
+![Map After DNS](./docs/dns.png)
+
+---
+
+### 4️⃣ Map After Sending SSH Traffic
+
+This image shows how the SSH counter is updated after two SSH connections are initiated.
+
+![Map After SSH](./docs/ssh.png)
+
+---
+
+### 5️⃣ Output of `trace_pipe`
+
+Real-time output from `cat /sys/kernel/tracing/trace_pipe`, showing `bpf_printk()` logs from the eBPF program detecting protocol packets.
+
+![trace_pipe Output](./docs/trace_pipe.png)
+
+
 ## License
 
 This project is licensed under the GPL-2.0 License.
