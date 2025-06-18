@@ -23,6 +23,7 @@ This project implements an eBPF-based network protocol classifier that identifie
 - LLVM/Clang compiler
 - BPF Compiler Collection (BCC) tools
 - Root privileges for loading the eBPF program
+- `dnsutils` package to test DNS counter using `dig`
 
 ## Building
 After running and entering the podman container following the [kernel-playground](https://github.com/MhrshadSh/kernel-playground/tree/master#repository-structure) repository instructions, you may find a modified version of `netprog.bpf.c` in the `src/c` folder.
