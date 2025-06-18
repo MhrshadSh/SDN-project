@@ -25,7 +25,8 @@ This project implements an eBPF-based network protocol classifier that identifie
 - Root privileges for loading the eBPF program
 
 ## Building
-
+After running and entering the podman container following the [kernel-playground](https://github.com/MhrshadSh/kernel-playground/tree/master#repository-structure) repository instructions, you may find a modified version of `netprog.bpf.c` in the `src/c` folder.
+the same directory also includes the `Makefile` to build the object file of the program.
 1. Clean any existing build artifacts:
 ```bash
 make clean
@@ -38,8 +39,15 @@ make
 
 The compiled eBPF object file will be created in the `.output` directory.
 
+3. Install the eBPF program:
+```bash
+make install
+```
+
+It will copy the `netprog.bpf.o` file into the `/mnt/shared` folder of the VM.
+
 ## Usage
-Run the "xdp_protocol_classifier.sh" that will create the environment with one router and two hosts, then it applies
+Copy the `xdp_protocol_classifier.sh` file from `tests/scripts` folder into the `/mnt/shared` folder of the VM where the `netprog.bpf.o` exists, then run it. that will create the environment with one router and two hosts, then it applies
 the following commands:
 
 1. Load the eBPF program:
@@ -103,22 +111,17 @@ curl http://10.0.2.1 --connect-timeout 1
 ```bash
 curl -g -6 'http://[beef::1]' --connect-timeout 1
 ```
-✅ Optional: On h1, start a web server
-python3 -m http.server 80
 
 ### 🧭 DNS Tests
 #### DNS over IPv4
 ```bash
 dig @10.0.2.1 example.com
 ```
-or use "curl example.com". As it will generate a dns msg to resolve example.com
+or use "curl example.com". As it will generate a DNS querry to resolve example.com
 #### DNS over IPv6
 ```bash
 dig @beef::1 example.com
 ```
-
-✅ Optional: On h1, start a DNS server
-dnsmasq --no-daemon
 
 ### 🔐 SSH Tests
 #### SSH over IPv4
@@ -139,8 +142,5 @@ This project is licensed under the GPL-2.0 License.
 - The program processes both IPv4 and IPv6 traffic
 - All packets are passed through (XDP_PASS)
 - Statistics are maintained using eBPF maps
-<<<<<<< HEAD
 - Protocol detection is based on port numbers only 
-=======
-- Protocol detection is based on port numbers only
->>>>>>> db3ffd5b6435ee552f2e5f99623c2f711d688d2e
+
